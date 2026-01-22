@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flowchart PowerFit Gym - Full View</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 3px solid #667eea;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .zoom-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .zoom-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .flowchart-wrapper {
+            padding: 20px;
+            background: white;
+            overflow: auto;
+            width: 100%;
+        }
+
+        #svgCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: white;
+        }
+
+        /* Flowchart Shapes */
+        .start-end {
+            fill: #28a745;
+            stroke: #1e7e34;
+            stroke-width: 2;
+        }
+
+        .process {
+            fill: #007bff;
+            stroke: #0056b3;
+            stroke-width: 2;
+        }
+
+        .decision {
+            fill: #ffc107;
+            stroke: #e0a800;
+            stroke-width: 2;
+        }
+
+        .input-output {
+            fill: #17a2b8;
+            stroke: #117a8b;
+            stroke-width: 2;
+        }
+
+        .data {
+            fill: #6f42c1;
+            stroke: #5a32a3;
+            stroke-width: 2;
+        }
+
+        .text {
+            fill: white;
+            font-size: 12px;
+            font-weight: 600;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+
+        .text-small {
+            fill: white;
+            font-size: 10px;
+            font-weight: 600;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+
+        .text-dark {
+            fill: #333;
+        }
+
+        .arrow {
+            stroke: #495057;
+            stroke-width: 2;
+            fill: none;
+            marker-end: url(#arrowhead);
+        }
+
+        .arrow-thick {
+            stroke: #dc3545;
+            stroke-width: 3;
+            fill: none;
+            marker-end: url(#arrowhead-red);
+        }
+
+        .arrow-label {
+            fill: #495057;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .legend {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 15px;
+        }
+
+        .legend h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .legend-shape {
+            width: 40px;
+            height: 30px;
+            margin-right: 10px;
+            border: 2px solid #333;
+            flex-shrink: 0;
+        }
+
+        .legend-shape.start-end { 
+            background: #28a745; 
+            border-radius: 50%;
+        }
+        .legend-shape.process { background: #007bff; border-radius: 5px; }
+        .legend-shape.decision { 
+            background: #ffc107;
+            transform: rotate(45deg);
+        }
+        .legend-shape.input-output { 
+            background: #17a2b8;
+            clip-path: polygon(10% 0%, 100% 0%, 90% 100%, 0% 100%);
+        }
+        .legend-shape.data { background: #6f42c1; border-radius: 5px; }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #667eea;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            font-size: 20px;
+            z-index: 1000;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💪 PowerFit Gym Management System</h1>
+            <p>Flowchart Lengkap - Semua Menu Terhubung</p>
+        </div>
+
+        <div class="controls">
+            <button class="zoom-btn" onclick="setZoom(0.3)">30%</button>
+            <button class="zoom-btn" onclick="setZoom(0.5)">50%</button>
+            <button class="zoom-btn" onclick="setZoom(0.7)">70%</button>
+            <button class="zoom-btn" onclick="setZoom(1)">100%</button>
+            <button class="zoom-btn" onclick="setZoom(1.5)">150%</button>
+            <button class="zoom-btn" onclick="downloadPDF()" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">📥 Download PDF</button>
+        </div>
+
+        <div class="flowchart-wrapper">
+            <svg id="svgCanvas" viewBox="0 0 2400 6000" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+                        <polygon points="0 0, 8 3, 0 6" fill="#495057" />
+                    </marker>
+                    <marker id="arrowhead-red" markerWidth="10" markerHeight="10" refX="9" refY="4" orient="auto">
+                        <polygon points="0 0, 10 4, 0 8" fill="#dc3545" />
+                    </marker>
+                </defs>
+                
+                <!-- START -->
+                <ellipse cx="1200" cy="80" rx="100" ry="40" class="start-end"/>
+                <text x="1200" y="80" class="text" font-size="14">START</text>
+                <path d="M 1200 120 L 1200 170" class="arrow"/>
+                
+                <!-- INIT -->
+                <rect x="1050" y="170" width="300" height="80" rx="10" class="process"/>
+                <text x="1200" y="195" class="text">Inisialisasi:</text>
+                <text x="1200" y="215" class="text-small">head = nullptr</text>
+                <text x="1200" y="230" class="text-small">front = rear = nullptr</text>
+                <path d="M 1200 250 L 1200 300" class="arrow"/>
+                
+                <!-- MENU -->
+                <path d="M 1000 300 L 1400 300 L 1350 390 L 1050 390 Z" class="input-output"/>
+                <text x="1200" y="330" class="text">TAMPILKAN MENU</text>
+                <text x="1200" y="350" class="text-small">1-7, 0=Exit</text>
+                <path d="M 1200 390 L 1200 440" class="arrow"/>
+                
+                <!-- INPUT -->
+                <path d="M 1000 440 L 1400 440 L 1350 510 L 1050 510 Z" class="input-output"/>
+                <text x="1200" y="475" class="text">Input: pilihan</text>
+                <path d="M 1200 510 L 1200 570" class="arrow"/>
+                
+                <!-- SWITCH -->
+                <path d="M 1200 570 L 1350 680 L 1200 790 L 1050 680 Z" class="decision"/>
+                <text x="1200" y="675" class="text-dark">SWITCH</text>
+                <text x="1200" y="690" class="text-dark">(pilihan)</text>
+                
+                <!-- CASE 0 -->
+                <path d="M 1050 680 L 150 680" class="arrow-thick"/>
+                <text x="600" y="670" class="arrow-label" fill="#dc3545">case 0</text>
+                <ellipse cx="100" cy="680" rx="60" ry="35" class="start-end"/>
+                <text x="100" y="680" class="text">END</text>
+                
+                <!-- CASE 1 - TAMBAH -->
+                <path d="M 1350 680 L 1800 680 L 1800 800" class="arrow"/>
+                <text x="1575" y="670" class="arrow-label">case 1</text>
+                
+                <rect x="1650" y="800" width="300" height="60" rx="10" class="data"/>
+                <text x="1800" y="825" class="text-small">Member* baru =</text>
+                <text x="1800" y="845" class="text-small">new Member()</text>
+                <path d="M 1800 860 L 1800 920" class="arrow"/>
+                
+                <path d="M 1650 920 L 1950 920 L 1900 980 L 1700 980 Z" class="input-output"/>
+                <text x="1800" y="950" class="text-small">Input: ID, Nama, Paket, Durasi</text>
+                <path d="M 1800 980 L 1800 1040" class="arrow"/>
+                
+                <path d="M 1800 1040 L 1900 1130 L 1800 1220 L 1700 1130 Z" class="decision"/>
+                <text x="1800" y="1130" class="text-dark">Paket?</text>
+                
+                <path d="M 1900 1130 L 2100 1130" class="arrow"/>
+                <text x="1990" y="1125" class="arrow-label">Gold</text>
+                <rect x="2000" y="1105" width="150" height="50" rx="8" class="process"/>
+                <text x="2075" y="1130" class="text-small">500k*durasi</text>
+                <path d="M 2075 1155 L 2075 1260 L 1900 1260" class="arrow"/>
+                
+                <path d="M 1800 1220 L 1800 1290" class="arrow"/>
+                <text x="1820" y="1255" class="arrow-label">Silver</text>
+                <rect x="1725" y="1290" width="150" height="50" rx="8" class="process"/>
+                <text x="1800" y="1315" class="text-small">300k*durasi</text>
+                <path d="M 1800 1340 L 1800 1380 L 1900 1380" class="arrow"/>
+                
+                <path d="M 1700 1130 L 1500 1130" class="arrow"/>
+                <text x="1590" y="1125" class="arrow-label">Bronze</text>
+                <rect x="1425" y="1105" width="150" height="50" rx="8" class="process"/>
+                <text x="1500" y="1130" class="text-small">150k*durasi</text>
+                <path d="M 1500 1155 L 1500 1380 L 1700 1380" class="arrow"/>
+                
+                <rect x="1650" y="1380" width="300" height="50" rx="10" class="process"/>
+                <text x="1800" y="1405" class="text-small">baru->next = nullptr</text>
+                <path d="M 1800 1430 L 1800 1490" class="arrow"/>
+                
+                <path d="M 1800 1490 L 1900 1580 L 1800 1670 L 1700 1580 Z" class="decision"/>
+                <text x="1800" y="1580" class="text-dark">head==null?</text>
+                
+                <path d="M 1700 1580 L 1550 1580" class="arrow"/>
+                <text x="1615" y="1575" class="arrow-label">Ya</text>
+                <rect x="1450" y="1555" width="150" height="50" rx="8" class="process"/>
+                <text x="1525" y="1580" class="text-small">head = baru</text>
+                <path d="M 1525 1605 L 1525 1710 L 1700 1710" class="arrow"/>
+                
+                <path d="M 1900 1580 L 2050 1580" class="arrow"/>
+                <text x="1965" y="1575" class="arrow-label">Tidak</text>
+                <rect x="1975" y="1555" width="150" height="50" rx="8" class="process"/>
+                <text x="2050" y="1575" class="text-small">while & insert</text>
+                <text x="2050" y="1590" class="text-small">at end</text>
+                <path d="M 2050 1605 L 2050 1710 L 1900 1710" class="arrow"/>
+                
+                <rect x="1650" y="1710" width="300" height="50" rx="10" class="process"/>
+                <text x="1800" y="1735" class="text-small">jumlahMember++</text>
+                <path d="M 1800 1760 L 1800 1810" class="arrow"/>
+                
+                <path d="M 1650 1810 L 1950 1810 L 1900 1870 L 1700 1870 Z" class="input-output"/>
+                <text x="1800" y="1840" class="text-small">Output: Success!</text>
+                <path d="M 1800 1870 L 1800 1920 L 1200 1920" class="arrow"/>
+                
+                <!-- CASE 2 - TAMPIL -->
+                <path d="M 1200 1920 L 1200 2000 L 400 2000" class="arrow"/>
+                <text x="800" y="1990" class="arrow-label">case 2</text>
+                
+                <path d="M 400 2000 L 500 2090 L 400 2180 L 300 2090 Z" class="decision"/>
+                <text x="400" y="2090" class="text-dark">head==null?</text>
+                
+                <path d="M 300 2090 L 200 2090" class="arrow"/>
+                <text x="240" y="2085" class="arrow-label">Ya</text>
+                <path d="M 150 2070 L 250 2070 L 210 2110 L 190 2110 Z" class="input-output"/>
+                <text x="200" y="2090" class="text-small">Kosong</text>
+                <path d="M 200 2110 L 200 2300 L 300 2300" class="arrow"/>
+                
+                <path d="M 500 2090 L 650 2090" class="arrow"/>
+                <text x="565" y="2085" class="arrow-label">Tidak</text>
+                <rect x="575" y="2065" width="150" height="50" rx="8" class="data"/>
+                <text x="650" y="2090" class="text-small">current = head</text>
+                <path d="M 650 2115 L 650 2165" class="arrow"/>
+                
+                <path d="M 650 2165 L 750 2255 L 650 2345 L 550 2255 Z" class="decision"/>
+                <text x="650" y="2255" class="text-dark">current!=null?</text>
+                
+                <path d="M 550 2255 L 400 2255 L 400 2300" class="arrow"/>
+                <text x="465" y="2250" class="arrow-label">Tidak</text>
+                
+                <path d="M 750 2255 L 900 2255" class="arrow"/>
+                <text x="815" y="2250" class="arrow-label">Ya</text>
+                <path d="M 825 2235 L 975 2235 L 935 2275 L 885 2275 Z" class="input-output"/>
+                <text x="900" y="2255" class="text-small">Print data</text>
+                <path d="M 900 2275 L 900 2325" class="arrow"/>
+                
+                <rect x="825" y="2325" width="150" height="50" rx="8" class="process"/>
+                <text x="900" y="2345" class="text-small">current =</text>
+                <text x="900" y="2360" class="text-small">current->next</text>
+                <path d="M 825 2350 L 650 2350 L 650 2345" class="arrow"/>
+                
+                <path d="M 300 2300 L 400 2300" class="arrow"/>
+                <path d="M 400 2300 L 400 2380 L 1200 2380" class="arrow"/>
+                
+                <!-- CASE 3 - SORT -->
+                <path d="M 1200 2380 L 1200 2460 L 1800 2460" class="arrow"/>
+                <text x="1500" y="2450" class="arrow-label">case 3</text>
+                
+                <path d="M 1800 2460 L 1900 2550 L 1800 2640 L 1700 2550 Z" class="decision"/>
+                <text x="1800" y="2550" class="text-dark">head==null?</text>
+                
+                <path d="M 1700 2550 L 1600 2550" class="arrow"/>
+                <text x="1640" y="2545" class="arrow-label">Ya</text>
+                <ellipse cx="1550" cy="2550" rx="50" ry="30" class="start-end"/>
+                <text x="1550" y="2550" class="text-small">RET</text>
+                <path d="M 1550 2580 L 1550 2900 L 1700 2900" class="arrow"/>
+                
+                <path d="M 1900 2550 L 2050 2550" class="arrow"/>
+                <text x="1965" y="2545" class="arrow-label">Tidak</text>
+                <rect x="1975" y="2525" width="150" height="50" rx="8" class="data"/>
+                <text x="2050" y="2545" class="text-small">swapped=false</text>
+                <text x="2050" y="2560" class="text-small">lptr=null</text>
+                <path d="M 2050 2575 L 2050 2625" class="arrow"/>
+                
+                <rect x="1975" y="2625" width="150" height="60" rx="8" class="process"/>
+                <text x="2050" y="2645" class="text-small">Outer Loop:</text>
+                <text x="2050" y="2660" class="text-small">swapped=false</text>
+                <text x="2050" y="2675" class="text-small">ptr1=head</text>
+                <path d="M 2050 2685 L 2050 2735" class="arrow"/>
+                
+                <path d="M 2050 2735 L 2150 2825 L 2050 2915 L 1950 2825 Z" class="decision"/>
+                <text x="2050" y="2825" class="text-dark">Inner Loop</text>
+                
+                <path d="M 1950 2825 L 1850 2825" class="arrow"/>
+                <text x="1890" y="2820" class="arrow-label">End</text>
+                <rect x="1775" y="2800" width="150" height="50" rx="8" class="process"/>
+                <text x="1850" y="2825" class="text-small">lptr=ptr1</text>
+                <path d="M 1850 2850 L 1850 2915 L 1950 2915" class="arrow"/>
+                
+                <path d="M 2150 2825 L 2300 2825" class="arrow"/>
+                <text x="2215" y="2820" class="arrow-label">Loop</text>
+                
+                <path d="M 2300 2825 L 2400 2915 L 2300 3005 L 2200 2915 Z" class="decision"/>
+                <text x="2300" y="2915" class="text-dark">Compare</text>
+                
+                <path d="M 2300 3005 L 2300 3055" class="arrow"/>
+                <text x="2320" y="3030" class="arrow-label">OK</text>
+                
+                <path d="M 2200 2915 L 2100 2915" class="arrow"/>
+                <text x="2140" y="2910" class="arrow-label">Swap</text>
+                <rect x="2025" y="2890" width="150" height="50" rx="8" class="process"/>
+                <text x="2100" y="2910" class="text-small">swapData()</text>
+                <text x="2100" y="2925" class="text-small">swapped=true</text>
+                <path d="M 2100 2940 L 2100 3055 L 2300 3055" class="arrow"/>
+                
+                <rect x="2225" y="3055" width="150" height="50" rx="8" class="process"/>
+                <text x="2300" y="3075" class="text-small">ptr1 =</text>
+                <text x="2300" y="3090" class="text-small">ptr1->next</text>
+                <path d="M 2225 3080 L 2050 3080 L 2050 2915" class="arrow"/>
+                
+                <path d="M 1950 2915 L 1850 2915" class="arrow"/>
+                
+                <path d="M 1850 2915 L 1950 3005 L 1850 3095 L 1750 3005 Z" class="decision"/>
+                <text x="1850" y="3005" class="text-dark">swapped?</text>
+                
+                <path d="M 1950 3005 L 2050 3005 L 2050 2685" class="arrow"/>
+                <text x="1990" y="3000" class="arrow-label">Ya</text>
+                
+                <path d="M 1750 3005 L 1650 3005" class="arrow"/>
+                <text x="1690" y="3000" class="arrow-label">Tidak</text>
+                <path d="M 1575 2985 L 1725 2985 L 1685 3025 L 1615 3025 Z" class="input-output"/>
+                <text x="1650" y="3005" class="text-small">Sorted!</text>
+                <path d="M 1650 3025 L 1650 3095 L 1750 3095" class="arrow"/>
+                
+                <rect x="1675" y="3095" width="250" height="50" rx="10" class="process"/>
+                <text x="1800" y="3120" class="text-small">tampilkanData()</text>
+                <path d="M 1800 3145 L 1800 3200 L 1200 3200" class="arrow"/>
+                
+                <!-- CASE 4 - SEARCH -->
+                <path d="M 1200 3200 L 1200 3280 L 400 3280" class="arrow"/>
+                <text x="800" y="3270" class="arrow-label">case 4</text>
+                
+                <path d="M 300 3260 L 500 3260 L 460 3310 L 340 3310 Z" class="input-output"/>
+                <text x="400" y="3285" class="text-small">Input: cariID</text>
+                <path d="M 400 3310 L 400 3360" class="arrow"/>
+                
+                <rect x="325" y="3360" width="150" height="50" rx="8" class="data"/>
+                <text x="400" y="3385" class="text-small">current = head</text>
+                <path d="M 400 3410 L 400 3460" class="arrow"/>
+                
+                <path d="M 400 3460 L 500 3550 L 400 3640 L 300 3550 Z" class="decision"/>
+                <text x="400" y="3550" class="text-dark">current!=null?</text>
+                
+                <path d="M 300 3550 L 200 3550" class="arrow"/>
+                <text x="240" y="3545" class="arrow-label">Tidak</text>
+                <path d="M 150 3530 L 250 3530 L 210 3570 L 190 3570 Z" class="input-output"/>
+                <text x="200" y="3550" class="text-small">Not Found</text>
+                <path d="M 200 3570 L 200 3680 L 300 3680" class="arrow"/>
+                
+                <path d="M 500 3550 L 650 3550" class="arrow"/>
+                <text x="565" y="3545" class="arrow-label">Ya</text>
+                
+                <path d="M 650 3550 L 750 3640 L 650 3730 L 550 3640 Z" class="decision"/>
+                <text x="650" y="3640" class="text-dark">id==cariID?</text>
+                
+                <path d="M 750 3640 L 900 3640" class="arrow"/>
+                <text x="815" y="3635" class="arrow-label">Ya</text>
+                <path d="M 825 3620 L 975 3620 L 935 3660 L 885 3660 Z" class="input-output"/>
+                <text x="900" y="3640" class="text-small">Found!</text>
+                <path d="M 900 3660 L 900 3750 L 400 3750" class="arrow"/>
+                
+                <path d="M 650 3730 L 650 3800" class="arrow"/>
+                <text x="670" y="3765" class="arrow-label">Tidak</text>
+                <rect x="575" y="3800" width="150" height="50" rx="8" class="process"/>
+                <text x="650" y="3820" class="text-small">current =</text>
+                <text x="650" y="3835" class="text-small">current->next</text>
+                <path d="M 575 3825 L 400 3825 L 400 3640" class="arrow"/>
+                
+                <path d="M 300 3680 L 400 3680 L 400 3750" class="arrow"/>
+                <path d="M 400 3750 L 400 3850 L 1200 3850" class="arrow"/>
+                
+                <!-- CASE 5 - ENQUEUE -->
+                <path d="M 1200 3850 L 1200 3930 L 1800 3930" class="arrow"/>
+                <text x="1500" y="3920" class="arrow-label">case 5</text>
+                
+                <path d="M 1700 3910 L 1900 3910 L 1860 3960 L 1740 3960 Z" class="input-output"/>
+                <text x="1800" y="3935" class="text-small">Input: nama</text>
+                <path d="M 1800 3960 L 1800 4010" class="arrow"/>
+                
+                <rect x="1725" y="4010" width="150" height="60" rx="8" class="data"/>
+                <text x="1800" y="4030" class="text-small">QueueNode* baru</text>
+                <text x="1800" y="4050" class="text-small">baru->nama</text>
+                <path d="M 1800 4070 L 1800 4130" class="arrow"/>
+                
+                <path d="M 1800 4130 L 1900 4220 L 1800 4310 L 1700 4220 Z" class="decision"/>
+                <text x="1800" y="4220" class="text-dark">rear==null?</text>
+                
+                <path d="M 1700 4220 L 1550 4220" class="arrow"/>
+                <text x="1615" y="4215" class="arrow-label">Ya</text>
+                <rect x="1475" y="4195" width="150" height="50" rx="8" class="process"/>
+                <text x="1550" y="4215" class="text-small">front=rear</text>
+                <text x="1550" y="4230" class="text-small">=baru</text>
+                <path d="M 1550 4245 L 1550 4350 L 1700 4350" class="arrow"/>
+                
+                <path d="M 1900 4220 L 2050 4220" class="arrow"/>
+                <text x="1965" y="4215" class="arrow-label">Tidak</text>
+                <rect x="1975" y="4195" width="150" height="50" rx="8" class="process"/>
+                <text x="2050" y="4215" class="text-small">rear->next=baru</text>
+                <text x="2050" y="4230" class="text-small">rear=baru</text>
+                <path d="M 2050 4245 L 2050 4350 L 1900 4350" class="arrow"/>
+                
+                <path d="M 1700 4320 L 1900 4320 L 1860 4370 L 1740 4370 Z" class="input-output"/>
+                <text x="1800" y="4345" class="text-small">Output: Enqueued!</text>
+                <path d="M 1800 4370 L 1800 4420 L 1200 4420" class="arrow"/>
+                
+                <!-- CASE 6 - DEQUEUE -->
+                <path d="M 1200 4420 L 1200 4500 L 400 4500" class="arrow"/>
+                <text x="800" y="4490" class="arrow-label">case 6</text>
+                
+                <path d="M 400 4500 L 500 4590 L 400 4680 L 300 4590 Z" class="decision"/>
+                <text x="400" y="4590" class="text-dark">front==null?</text>
+                
+                <path d="M 300 4590 L 200 4590" class="arrow"/>
+                <text x="240" y="4585" class="arrow-label">Ya</text>
+                <path d="M 150 4570 L 250 4570 L 210 4610 L 190 4610 Z" class="input-output"/>
+                <text x="200" y="4590" class="text-small">Empty</text>
+                <path d="M 200 4610 L 200 4820 L 300 4820" class="arrow"/>
+                
+                <path d="M 500 4590 L 650 4590" class="arrow"/>
+                <text x="565" y="4585" class="arrow-label">Tidak</text>
+                <rect x="575" y="4565" width="150" height="50" rx="8" class="data"/>
+                <text x="650" y="4590" class="text-small">temp = front</text>
+                <path d="M 650 4615 L 650 4665" class="arrow"/>
+                
+                <path d="M 575 4665 L 725 4665 L 685 4715 L 615 4715 Z" class="input-output"/>
+                <text x="650" y="4690" class="text-small">Output: Processed</text>
+                <path d="M 650 4715 L 650 4765" class="arrow"/>
+                
+                <rect x="575" y="4765" width="150" height="50" rx="8" class="process"/>
+                <text x="650" y="4785" class="text-small">front =</text>
+                <text x="650" y="4800" class="text-small">front->next</text>
+                <path d="M 650 4815 L 650 4875" class="arrow"/>
+                
+                <path d="M 650 4875 L 750 4965 L 650 5055 L 550 4965 Z" class="decision"/>
+                <text x="650" y="4965" class="text-dark">front==null?</text>
+                
+                <path d="M 750 4965 L 900 4965" class="arrow"/>
+                <text x="815" y="4960" class="arrow-label">Ya</text>
+                <rect x="825" y="4940" width="150" height="50" rx="8" class="process"/>
+                <text x="900" y="4965" class="text-small">rear = null</text>
+                <path d="M 900 4990 L 900 5075 L 650 5075" class="arrow"/>
+                
+                <path d="M 550 4965 L 450 4965 L 450 5075 L 550 5075" class="arrow"/>
+                <text x="490" y="5020" class="arrow-label">Tidak</text>
+                
+                <rect x="575" y="5050" width="150" height="50" rx="8" class="process"/>
+                <text x="650" y="5075" class="text-small">delete temp</text>
+                <path d="M 650 5100 L 650 5150 L 400 5150" class="arrow"/>
+                
+                <path d="M 300 4820 L 400 4820 L 400 5150" class="arrow"/>
+                <path d="M 400 5150 L 400 5250 L 1200 5250" class="arrow"/>
+                
+                <!-- CASE 7 - LIHAT ANTRIAN -->
+                <path d="M 1200 5250 L 1200 5330 L 1800 5330" class="arrow"/>
+                <text x="1500" y="5320" class="arrow-label">case 7</text>
+                
+                <path d="M 1800 5330 L 1900 5420 L 1800 5510 L 1700 5420 Z" class="decision"/>
+                <text x="1800" y="5420" class="text-dark">front==null?</text>
+                
+                <path d="M 1700 5420 L 1550 5420" class="arrow"/>
+                <text x="1615" y="5415" class="arrow-label">Ya</text>
+                <path d="M 1475 5400 L 1625 5400 L 1585 5440 L 1515 5440 Z" class="input-output"/>
+                <text x="1550" y="5420" class="text-small">No Queue</text>
+                <path d="M 1550 5440 L 1550 5590 L 1700 5590" class="arrow"/>
+                
+                <path d="M 1900 5420 L 2050 5420" class="arrow"/>
+                <text x="1965" y="5415" class="arrow-label">Tidak</text>
+                <rect x="1975" y="5395" width="150" height="50" rx="8" class="data"/>
+                <text x="2050" y="5415" class="text-small">temp=front</text>
+                <text x="2050" y="5430" class="text-small">no=1</text>
+                <path d="M 2050 5445 L 2050 5505" class="arrow"/>
+                
+                <path d="M 2050 5505 L 2150 5595 L 2050 5685 L 1950 5595 Z" class="decision"/>
+                <text x="2050" y="5595" class="text-dark">temp!=null?</text>
+                
+                <path d="M 1950 5595 L 1800 5595 L 1800 5590" class="arrow"/>
+                <text x="1865" y="5590" class="arrow-label">Tidak</text>
+                
+                <path d="M 2150 5595 L 2300 5595" class="arrow"/>
+                <text x="2215" y="5590" class="arrow-label">Ya</text>
+                <path d="M 2225 5575 L 2375 5575 L 2335 5615 L 2265 5615 Z" class="input-output"/>
+                <text x="2300" y="5595" class="text-small">Print</text>
+                <path d="M 2300 5615 L 2300 5665" class="arrow"/>
+                
+                <rect x="2225" y="5665" width="150" height="50" rx="8" class="process"/>
+                <text x="2300" y="5685" class="text-small">no++, temp=</text>
+                <text x="2300" y="5700" class="text-small">temp->next</text>
+                <path d="M 2300 5715 L 2300 5765 L 2050 5765 L 2050 5685" class="arrow"/>
+                
+                <path d="M 1700 5590 L 1800 5590" class="arrow"/>
+                <path d="M 1800 5590 L 1800 5690 L 1200 5690" class="arrow"/>
+                
+                <!-- LOOP BACK -->
+                <path d="M 1200 5690 L 1200 5850 L 250 5850 L 250 345 L 1000 345" class="arrow-thick"/>
+                <text x="625" y="5835" class="arrow-label" font-size="12" fill="#dc3545">⟲ LOOP (pilihan ≠ 0)</text>
+                
+            </svg>
+        </div>
+
+        <div class="legend">
+            <h3>📌 Keterangan Simbol</h3>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <div class="legend-shape start-end"></div>
+                    <div><strong>Start/End</strong><br><small>Awal/akhir</small></div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-shape process"></div>
+                    <div><strong>Process</strong><br><small>Pemrosesan</small></div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-shape decision"></div>
+                    <div><strong>Decision</strong><br><small>Percabangan</small></div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-shape input-output"></div>
+                    <div><strong>I/O</strong><br><small>Input/Output</small></div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-shape data"></div>
+                    <div><strong>Data</strong><br><small>Variabel/Pointer</small></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">↑</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        const svg = document.getElementById('svgCanvas');
+        
+        function setZoom(scale) {
+            svg.style.transform = `scale(${scale})`;
+            svg.style.transformOrigin = 'top center';
+        }
+
+        async function downloadPDF() {
+            try {
+                // Show loading message
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '⏳ Generating PDF...';
+                btn.disabled = true;
+
+                // Reset zoom to 100% for PDF
+                const originalTransform = svg.style.transform;
+                svg.style.transform = 'scale(1)';
+                
+                // Get SVG element
+                const svgElement = document.getElementById('svgCanvas');
+                const svgData = new XMLSerializer().serializeToString(svgElement);
+                
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Set canvas size based on viewBox
+                const viewBox = svgElement.getAttribute('viewBox').split(' ');
+                const width = parseFloat(viewBox[2]);
+                const height = parseFloat(viewBox[3]);
+                
+                // Scale for better quality
+                const scale = 2;
+                canvas.width = width * scale;
+                canvas.height = height * scale;
+                ctx.scale(scale, scale);
+                
+                // Create image from SVG
+                const img = new Image();
+                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                
+                img.onload = function() {
+                    // Draw white background
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, width, height);
+                    
+                    // Draw SVG
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Convert to PDF
+                    const { jsPDF } = window.jspdf;
+                    
+                    // Calculate PDF dimensions (A4 landscape or custom)
+                    const pdfWidth = 297; // A4 landscape width in mm
+                    const pdfHeight = (height / width) * pdfWidth;
+                    
+                    const pdf = new jsPDF({
+                        orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+                        unit: 'mm',
+                        format: [pdfWidth, pdfHeight]
+                    });
+                    
+                    // Add image to PDF
+                    const imgData = canvas.toDataURL('image/png');
+                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    
+                    // Add title page info
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(100);
+                    
+                    // Save PDF
+                    pdf.save('PowerFit_Gym_Flowchart_Complete.pdf');
+                    
+                    // Cleanup
+                    URL.revokeObjectURL(url);
+                    
+                    // Restore zoom
+                    svg.style.transform = originalTransform;
+                    
+                    // Restore button
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    
+                    alert('✅ PDF berhasil didownload!');
+                };
+                
+                img.onerror = function() {
+                    alert('❌ Error generating PDF. Please try again.');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    svg.style.transform = originalTransform;
+                };
+                
+                img.src = url;
+                
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('❌ Error: ' + error.message);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Start with 50% zoom for overview
+        window.addEventListener('load', () => {
+            setZoom(0.5);
+        });
+    </script>
+</body>
+</html>
